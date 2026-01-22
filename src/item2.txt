@@ -1,0 +1,18 @@
+Item Class: Utility Flasks
+Rarity: Magic
+Scholar's Quicksilver Flask of Carnage
+--------
+Lasts 6 Seconds
+Consumes 24 (augmented) of 60 Charges on use
+Currently has 60 Charges
+40% increased Movement Speed
+--------
+Requirements:
+Level: 32
+--------
+Item Level: 73
+--------
+19% reduced Charges per use
+0.6% of Attack Damage Leeched as Life during Effect
+--------
+Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.
