@@ -3,7 +3,8 @@ package parser
 import "github.com/garasev/poe-item-generator/internal/domain"
 
 const (
-	blockSplitter = "--------\n"
+	blockSplitter  = "--------\r"
+	blockSplitter2 = "--------\n"
 )
 
 var (

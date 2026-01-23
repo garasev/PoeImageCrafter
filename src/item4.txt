@@ -1,0 +1,20 @@
+Rarity: Magic
+Crafted Item
+Grasping Mail
+--------
+Quality: +20% (augmented)
+Armour: 1289 - 1486
+Evasion Rating: 1289 - 1486
+Energy Shield: 260 - 305
+--------
+Requirements:
+Str: 60
+Dex: 60
+Int: 60
+Level: 70
+--------
+Item Level: 100
+--------
+103% increased Armour
+Evasion and Energy Shield
+--------

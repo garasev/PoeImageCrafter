@@ -1,0 +1,17 @@
+Rarity: Normal
+Crafted Item
+Grasping Mail
+--------
+Quality: +20% (augmented)
+Armour: 312 - 360
+Evasion Rating: 312 - 360
+Energy Shield: 62 - 73
+--------
+Requirements:
+Str: 60
+Dex: 60
+Int: 60
+Level: 70
+--------
+Item Level: 100
+--------

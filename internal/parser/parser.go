@@ -10,6 +10,9 @@ type Parser struct{}
 
 func ParseText(text string) *domain.Item {
 	blocks := strings.Split(text, blockSplitter)
+	if len(blocks) <= 1 {
+		blocks = strings.Split(text, blockSplitter2)
+	}
 	itemBlocks := make([]*domain.Block, 0, len(blocks))
 	for _, block := range blocks {
 		itemBlocks = append(itemBlocks, parseBlock(block))
@@ -28,8 +31,17 @@ func parseBlock(block string) *domain.Block {
 	}
 
 	stats := strings.Split(block, "\n")
-	if stats[len(stats)-1] == "" {
-		stats = stats[:len(stats)-1]
+	if len(stats) <= 1 {
+		stats = strings.Split(block, "\r")
 	}
-	return &domain.Block{Type: resType, Stats: stats}
+	res := make([]string, 0, len(stats))
+	for _, stat := range stats {
+		stat = strings.TrimSuffix(stat, "\r")
+		stat = strings.TrimSuffix(stat, "\n")
+		if stat == "" {
+			continue
+		}
+		res = append(res, stat)
+	}
+	return &domain.Block{Type: resType, Stats: res}
 }

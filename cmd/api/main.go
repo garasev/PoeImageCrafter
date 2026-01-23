@@ -25,7 +25,7 @@ func main() {
 	fmt.Println(text)
 	item := parser.ParseText(text)
 
-	fontBytes, err := os.ReadFile("../../src/fontin/FontinSans_Cyrillic_R_46b.otf")
+	fontBytes, err := os.ReadFile("../../src/fontin/FontinSans_Cyrillic_B_46b.otf")
 	if err != nil {
 		log.Fatal("Шрифт не найден:", err)
 	}

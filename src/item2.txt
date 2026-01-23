@@ -1,5 +1,5 @@
 Item Class: Utility Flasks
-Rarity: Magic
+Rarity: Normal
 Scholar's Quicksilver Flask of Carnage
 --------
 Lasts 6 Seconds
