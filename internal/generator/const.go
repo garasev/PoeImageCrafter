@@ -6,11 +6,31 @@ const (
 )
 
 var (
-	rarityTypes = map[string]string{
-		"Normal": "../../src/items/normal_",
-		"Magic":  "../../src/items/magic_",
-		"Rare":   "../../src/items/rare_",
+	rarityTypes = map[string]RarityConfig{
+		"Normal": RarityConfig{
+			Path: "../../src/items/normal_",
+			R:    255,
+			G:    255,
+			B:    255,
+		},
+		"Magic": RarityConfig{
+			Path: "../../src/items/magic_",
+			R:    135,
+			G:    135,
+			B:    254,
+		},
+		"Rare": RarityConfig{
+			Path: "../../src/items/rare_",
+			R:    254,
+			G:    254,
+			B:    118,
+		},
 	}
-
-	rarityColor = map[string]string{}
 )
+
+type RarityConfig struct {
+	Path string
+	R    int
+	G    int
+	B    int
+}

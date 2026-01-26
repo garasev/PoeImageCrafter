@@ -1,17 +1,22 @@
-Rarity: Normal
+Rarity: Rare
 Crafted Item
-Grasping Mail
+Broad Axe
 --------
 Quality: +20% (augmented)
-Armour: 312 - 360
-Evasion Rating: 312 - 360
-Energy Shield: 62 - 73
+Physical Damage: 22-40
+Critical Strike Chance: 5.00%
+Attacks Per Second: 1.35
 --------
 Requirements:
-Str: 60
-Dex: 60
-Int: 60
-Level: 70
+Str: 54
+Dex: 25
+Level: 21
 --------
 Item Level: 100
 --------
+34% increased Elemental Damage with Attack Skills
+Adds 1 to 3 Cold Damage to Attacks with this Weapon per 10 Dexterity
++44% to Damage over Time Multiplier for Poison inflicted with this Weapon
+--------
+Shaper Item
+Elder Item

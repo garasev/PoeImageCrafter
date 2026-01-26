@@ -8,6 +8,7 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/garasev/poe-item-generator/internal/generator"
 	"github.com/garasev/poe-item-generator/internal/parser"
+	"github.com/garasev/poe-item-generator/internal/render"
 )
 
 const (
@@ -24,8 +25,10 @@ func main() {
 	fmt.Println("Содержимое буфера обмена:")
 	fmt.Println(text)
 	item := parser.ParseText(text)
-
-	fontBytes, err := os.ReadFile("../../src/fontin/FontinSans_Cyrillic_B_46b.otf")
+	item2 := parser.ParseItem(text)
+	render.RenderPoB(item2, "res.png")
+	fmt.Println(item2)
+	fontBytes, err := os.ReadFile("../../src/fontin/FontinSans_Cyrillic_SC_46b.otf")
 	if err != nil {
 		log.Fatal("Шрифт не найден:", err)
 	}
@@ -34,6 +37,7 @@ func main() {
 		return
 	}
 	g.CreateItem(item)
+
 	log.Println(item)
 	// // Текст который нужно нарисовать
 	// text := "Привет, мир! Это длинный текст для примера Привет, мир! Это длинный текст для примера"

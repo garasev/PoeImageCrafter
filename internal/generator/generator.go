@@ -1,23 +1,25 @@
 package generator
 
 import (
-	"fmt"
 	"image"
-	"os"
 	"strings"
 
 	"github.com/fogleman/gg"
 	"github.com/garasev/poe-item-generator/internal/domain"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
+	"golang.org/x/image/font/sfnt"
 )
 
 type Generator struct {
-	dc        *gg.Context
-	maxWidth  int
-	maxHeight int
+	rarityConfig RarityConfig
+	maxWidth     int
+	maxHeight    int
 
-	font font.Face
+	font *sfnt.Font
+
+	header *gg.Context
+	stats  *gg.Context
 }
 
 func NewGenerator(fontBytes []byte) (*Generator, error) {
@@ -25,30 +27,44 @@ func NewGenerator(fontBytes []byte) (*Generator, error) {
 	if err != nil {
 		return nil, err
 	}
-	face, err := opentype.NewFace(fontFace, &opentype.FaceOptions{
-		Size:    18,
-		DPI:     72,
-		Hinting: font.HintingFull,
-	})
 	if err != nil {
 		return nil, err
 	}
 	return &Generator{
-		font: face,
+		font: fontFace,
 	}, nil
 }
 
 func (g *Generator) CreateItem(item *domain.Item) image.Image {
 	g.getMaxWidth(item)
-	g.createHeader(item)
-	dc := gg.NewContext(g.maxWidth, g.maxHeight)
+	for _, block := range item.Blocks {
+		switch block.Type {
+		case domain.Header:
+			g.createHeader(block)
+		case domain.Stats:
+			g.createStats(block)
+		}
+	}
+	//g.createHeader(item)
+	dc := gg.NewContext(g.maxWidth, 300)
+	dc.DrawImage(g.header.Image(), 0, 0)
+	dc.DrawImage(g.stats.Image(), 0, g.header.Height())
+	dc.SavePNG("result1.png")
 	return dc.Image()
 }
 
 func (g *Generator) getMaxWidth(item *domain.Item) {
+	face, err := opentype.NewFace(g.font, &opentype.FaceOptions{
+		Size:    18,
+		DPI:     72,
+		Hinting: font.HintingFull,
+	})
+	if err != nil {
+		return
+	}
 	for _, block := range item.Blocks {
 		for _, stat := range block.Stats {
-			w, _ := getStringSize(stat, g.font)
+			w, _ := getStringSize(stat, face)
 			if w > g.maxWidth {
 				g.maxWidth = w
 			}
@@ -56,21 +72,14 @@ func (g *Generator) getMaxWidth(item *domain.Item) {
 	}
 }
 
-func (g *Generator) createHeader(item *domain.Item) error {
-	var header *domain.Block
-	for _, block := range item.Blocks {
-		if block.Type == domain.Header {
-			header = block
-			break
-		}
-	}
-
+func (g *Generator) createHeader(block *domain.Block) error {
 	var rarityFlag bool
-	name := make([]string, 0, 2)
 	var dc *gg.Context
 	var err error
 
-	for _, stat := range header.Stats {
+	name := make([]string, 0, 2)
+
+	for _, stat := range block.Stats {
 		if rarityFlag {
 			name = append(name, stat)
 		}
@@ -79,26 +88,74 @@ func (g *Generator) createHeader(item *domain.Item) error {
 		}
 
 		rarityStr := strings.Split(stat, " ")
-		path := rarityTypes[rarityStr[1]]
-		cwd, _ := os.Getwd()
-		fmt.Println(cwd)
-		dc, err = generateHeader(path, g.maxWidth)
-		if err != nil {
-			return err
-		}
+		g.rarityConfig = rarityTypes[rarityStr[1]]
+
 		rarityFlag = true
 	}
-	dc.SetFontFace(g.font)
-	dc.SetRGB(1, 1, 1)
-	for i, n := range name {
+	dc, err = generateHeader(g.rarityConfig.Path, g.maxWidth, len(name), g.rarityConfig)
+	if err != nil {
+		return err
+	}
+	face, err := opentype.NewFace(g.font, &opentype.FaceOptions{
+		Size:    float64(18 * 2 / len(name)),
+		DPI:     72,
+		Hinting: font.HintingFull,
+	})
+	dc.SetFontFace(face)
+	dc.SetRGB255(g.rarityConfig.R, g.rarityConfig.G, g.rarityConfig.B)
+	if len(name) == 2 {
+		for i, n := range name {
+			dc.DrawStringAnchored(
+				n,
+				float64(g.maxWidth)/2,
+				float64(partH)*(0.2+float64(i)*0.45),
+				0.5,
+				0.5,
+			)
+		}
+	}
+	if len(name) == 1 {
 		dc.DrawStringAnchored(
-			n,
+			name[0],
 			float64(g.maxWidth)/2,
-			float64(partH)*(0.25+float64(i)*0.5),
+			float64(partH)*(0.35),
 			0.5,
 			0.5,
 		)
 	}
-	dc.SavePNG("result.png")
+
+	g.header = dc
+	return nil
+}
+
+func (g *Generator) createStats(block *domain.Block) error {
+	face, err := opentype.NewFace(g.font, &opentype.FaceOptions{
+		Size:    18,
+		DPI:     72,
+		Hinting: font.HintingFull,
+	})
+	if err != nil {
+		return err
+	}
+	sumH := 0
+	for _, stat := range block.Stats {
+		_, h := getStringSize(stat, face)
+		sumH += h
+	}
+
+	dc := gg.NewContext(g.maxWidth, sumH)
+	borderWidth := 2.0
+	dc.SetRGB(0, 0, 0)
+	dc.Clear()
+
+	dc.SetRGB255(g.rarityConfig.R, g.rarityConfig.G, g.rarityConfig.B)
+	dc.SetLineWidth(borderWidth)
+
+	halfBorder := borderWidth / 2
+	dc.DrawRectangle(halfBorder, halfBorder,
+		float64(g.maxWidth)-borderWidth,
+		float64(sumH)-borderWidth)
+	dc.Stroke()
+	g.stats = dc
 	return nil
 }
