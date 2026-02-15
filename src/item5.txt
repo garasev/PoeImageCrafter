@@ -1,22 +1,22 @@
 Rarity: Rare
 Crafted Item
-Broad Axe
+Jade Hatchet
 --------
 Quality: +20% (augmented)
-Physical Damage: 22-40
-Critical Strike Chance: 5.00%
-Attacks Per Second: 1.35
+Physical Damage: 12-18
+Critical Strike Chance: 6.40%
+Attacks Per Second: 1.78
 --------
 Requirements:
-Str: 54
-Dex: 25
-Level: 21
+Str: 21
+Dex: 10
+Level: 6
 --------
 Item Level: 100
 --------
-34% increased Elemental Damage with Attack Skills
-Adds 1 to 3 Cold Damage to Attacks with this Weapon per 10 Dexterity
-+44% to Damage over Time Multiplier for Poison inflicted with this Weapon
+28% increased Critical Strike Chance
+23% increased Attack Speed
++37 to Dexterity
+Adds 1 to 4 Cold Damage (fractured)
+Adds 5 to 91 Lightning Damage
 --------
-Shaper Item
-Elder Item

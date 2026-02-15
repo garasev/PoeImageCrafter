@@ -1,20 +1,17 @@
-Rarity: Magic
+Rarity: Normal
 Crafted Item
-Grasping Mail
+Foundry Bow
 --------
 Quality: +20% (augmented)
-Armour: 1289 - 1486
-Evasion Rating: 1289 - 1486
-Energy Shield: 260 - 305
+Physical Damage: 15-24
+Critical Strike Chance: 5.50%
+Attacks Per Second: 1.30
 --------
 Requirements:
-Str: 60
-Dex: 60
-Int: 60
-Level: 70
+Dex: 161
+Level: 50
 --------
 Item Level: 100
 --------
-103% increased Armour
-Evasion and Energy Shield
+Adds 82 to 140 Fire Damage (implicit)
 --------

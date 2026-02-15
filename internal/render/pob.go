@@ -1,6 +1,7 @@
 package render
 
 import (
+	"image"
 	"image/color"
 	"log"
 	"strings"
@@ -9,209 +10,500 @@ import (
 	"github.com/garasev/poe-item-generator/internal/parser"
 )
 
-// ================== НАСТРОЙКИ ==================
-
 const (
-	Width = 600
-
-	Padding = 20
-
-	FontSize = 22
-
-	LineSpacing   = 4
-	BlockSpacing  = 10
-	HeaderSpacing = 2
-
-	LineHeight = FontSize + LineSpacing
-	MaxTextW   = Width - Padding*2
+	headerFontSize = 18
+	fontSize       = 14
+	padding        = 5
+	miniPadding    = 4
+	fontPath       = "../../src/fontin/FontinSans_Cyrillic_SC_46b.ttf"
 )
 
-// ================== ЦВЕТА ==================
+var (
+	propertyColor = color.RGBA{
+		R: 127,
+		G: 127,
+		B: 127,
+		A: 255,
+	}
+	augmentedPropertyColor = color.RGBA{
+		R: 136,
+		G: 136,
+		B: 255,
+		A: 255,
+	}
 
-var rarityColors = map[string]color.RGBA{
-	"Normal": {200, 200, 200, 255},
-	"Magic":  {120, 170, 255, 255},
-	"Rare":   {255, 215, 0, 255},
-	"Unique": {175, 96, 37, 255},
+	levelColor = color.RGBA{255, 255, 255, 255}
+	strColor   = color.RGBA{255, 80, 80, 255}
+	dexColor   = color.RGBA{80, 255, 80, 255}
+	intColor   = color.RGBA{80, 160, 255, 255}
+
+	fractureColor = color.RGBA{162, 145, 96, 255}
+)
+
+var rarityConfigs = map[string]RarityConfig{
+	"Normal": RarityConfig{
+		path: "../../src/items/normal_",
+		color: color.RGBA{
+			R: 255,
+			G: 255,
+			B: 255,
+			A: 255,
+		},
+	},
+	"Magic": RarityConfig{
+		path: "../../src/items/magic_",
+		color: color.RGBA{
+			R: 135,
+			G: 135,
+			B: 255,
+			A: 255,
+		},
+	},
+	"Rare": RarityConfig{
+		path: "../../src/items/rare_",
+		color: color.RGBA{
+			R: 255,
+			G: 255,
+			B: 118,
+			A: 255,
+		},
+	},
+	"Unique": RarityConfig{
+		path: "../../src/items/uniq_",
+		color: color.RGBA{
+			R: 255,
+			G: 255,
+			B: 255,
+			A: 255,
+		},
+	},
 }
 
-// ================== ОСНОВНАЯ ФУНКЦИЯ ==================
+type RarityConfig struct {
+	color color.RGBA
+	path  string
+}
 
-func RenderPoB(item parser.Item, output string) {
-	// временный контекст для измерений
-	tmp := gg.NewContext(Width, 10)
+func RenderPoB2(item parser.Item) image.Image {
+	baseWidth := 400
+	rarityConfig := rarityConfigs[item.Rarity]
 
-	fontPath := "../../src/fontin/FontinSans_Cyrillic_SC_46b.ttf"
+	header := createHeader(item.Name, item.BaseType, baseWidth, rarityConfig)
+	property := createProperties(baseWidth, item.Properties)
+	requirements := createRequires(baseWidth, item.Requirements)
+	sockets := createSockets(baseWidth, item.Sockets)
+	itemLevel := createItemLevel(baseWidth, item.ItemLevel)
+	implicits := createModLines(baseWidth, item.Implicits)
+	enchants := createModLines(baseWidth, item.Enchants)
+	mods := createModLines(baseWidth, item.Mods)
 
-	if err := tmp.LoadFontFace(fontPath, FontSize); err != nil {
-		log.Fatal(err)
-	}
+	sepLine := createSeparationLine(baseWidth, rarityConfig)
 
-	height := int(measureHeight(tmp, item))
-	dc := gg.NewContext(Width, height)
+	height := header.Height() + padding*5
 
-	if err := dc.LoadFontFace(fontPath, FontSize); err != nil {
-		log.Fatal(err)
-	}
-
-	// фон
-	dc.SetRGB(0, 0, 0)
-	dc.Clear()
-
-	// рамка
-	col := rarityColors[item.Rarity]
-	dc.SetColor(col)
-	dc.SetLineWidth(3)
-	dc.DrawRectangle(2, 2, float64(Width-4), float64(height-4))
-	dc.Stroke()
-
-	y := float64(Padding)
-
-	// ===== NAME =====
-	if item.Name != "" {
-		dc.SetColor(col)
-		y = drawWrapped(dc, item.Name, y)
-	}
-
-	y += HeaderSpacing
-
-	// ===== BASE TYPE =====
-	if item.BaseType != "" {
-		dc.SetRGB(0.8, 0.8, 0.8)
-		y = drawWrapped(dc, item.BaseType, y)
-	}
-
-	y = drawSeparator(dc, y)
-
-	// ===== PROPERTIES =====
-	for _, line := range item.Properties {
-		dc.SetRGB(0.7, 0.7, 0.7)
-		y = drawWrapped(dc, line, y)
-	}
 	if len(item.Properties) > 0 {
-		y = drawSeparator(dc, y)
+		height += property.Height() + sepLine.Height()
 	}
 
-	// ===== REQUIREMENTS =====
-	for _, line := range item.Requirements {
-		dc.SetRGB(0.7, 0.7, 0.7)
-		y = drawWrapped(dc, line, y)
-	}
 	if len(item.Requirements) > 0 {
-		y = drawSeparator(dc, y)
+		height += requirements.Height()
 	}
 
-	// ===== ITEM LEVEL =====
-	if item.ItemLevel != "" {
-		dc.SetRGB(0.7, 0.7, 0.7)
-		y = drawWrapped(dc, "Item Level: "+item.ItemLevel, y)
-
-		y = drawSeparator(dc, y)
+	if item.Sockets != "" {
+		height += sockets.Height()
 	}
-
-	// ===== MODS =====
-	for _, line := range item.Mods {
-		dc.SetRGB(0.4, 0.7, 1.0)
-		y = drawWrapped(dc, line, y)
-	}
-
-	// ===== DESCRIPTION =====
-	if len(item.Description) > 0 {
-		y = drawSeparator(dc, y)
-
-		for _, line := range item.Description {
-			dc.SetRGB(0.6, 0.6, 0.6)
-			y = drawWrapped(dc, line, y)
-		}
-	}
-
-	dc.SavePNG(output)
-}
-
-// ================== ВСПОМОГАТЕЛЬНЫЕ ==================
-
-func drawWrapped(dc *gg.Context, text string, y float64) float64 {
-	lines := wrapText(dc, text, float64(MaxTextW))
-	for _, line := range lines {
-		dc.DrawStringAnchored(line, float64(Width)/2, y, 0.5, 0)
-		y += LineHeight
-	}
-	return y
-}
-
-func drawSeparator(dc *gg.Context, y float64) float64 {
-	dc.SetRGB(0.6, 0.6, 0.6)
-	dc.SetLineWidth(1)
-
-	// маленький отступ перед линией
-	y += BlockSpacing / 2
-
-	// рисуем линию
-	dc.DrawLine(
-		float64(Padding),
-		y+0.5, // субпиксель для чёткости
-		float64(Width-Padding),
-		y+0.5,
-	)
-	dc.Stroke()
-
-	// маленький отступ после линии
-	y += BlockSpacing / 2
-
-	return y
-}
-
-func wrapText(dc *gg.Context, text string, maxWidth float64) []string {
-	words := strings.Fields(text)
-	if len(words) == 0 {
-		return []string{text}
-	}
-
-	var lines []string
-	current := words[0]
-
-	for _, word := range words[1:] {
-		test := current + " " + word
-		w, _ := dc.MeasureString(test)
-		if w <= maxWidth {
-			current = test
-		} else {
-			lines = append(lines, current)
-			current = word
-		}
-	}
-	lines = append(lines, current)
-	return lines
-}
-
-func measureHeight(dc *gg.Context, item parser.Item) float64 {
-	y := float64(Padding)
-
-	addBlock := func(lines []string) {
-		for _, line := range lines {
-			wrapped := wrapText(dc, line, float64(MaxTextW))
-			y += float64(len(wrapped)) * LineHeight
-		}
-		y += BlockSpacing
-	}
-
-	if item.Name != "" {
-		addBlock([]string{item.Name})
-	}
-	if item.BaseType != "" {
-		y += HeaderSpacing
-		addBlock([]string{item.BaseType})
-	}
-
-	addBlock(item.Properties)
-	addBlock(item.Requirements)
 
 	if item.ItemLevel != "" {
-		addBlock([]string{"Item Level: " + item.ItemLevel})
+		height += itemLevel.Height() + sepLine.Height()
 	}
 
-	addBlock(item.Mods)
-	addBlock(item.Description)
+	if len(item.Enchants) > 0 {
+		height += enchants.Height() + sepLine.Height()
+	}
 
-	return y + Padding
+	if len(item.Implicits) > 0 {
+		height += implicits.Height() + sepLine.Height()
+	}
+
+	if len(item.Mods) > 0 {
+		height += mods.Height()
+	}
+
+	resultImage := createBaseContext(baseWidth, height, fontSize)
+
+	y := 0
+	resultImage.DrawImage(header.Image(), 0, y)
+	y += header.Height()
+
+	// PROPERTY
+	if len(item.Properties) > 0 {
+		resultImage.DrawImage(property.Image(), 0, y)
+		y += property.Height()
+	}
+
+	// SOCKETS
+	if item.Sockets != "" {
+		resultImage.DrawImage(sockets.Image(), 0, y)
+		y += sockets.Height()
+	}
+
+	// LINE
+	if len(item.Properties) > 0 {
+		resultImage.DrawImage(sepLine.Image(), 0, y)
+		y += sepLine.Height()
+	}
+
+	// ITEM LEVEL
+	if item.ItemLevel != "" {
+		resultImage.DrawImage(itemLevel.Image(), 0, y)
+		y += itemLevel.Height()
+	}
+
+	if len(item.Requirements) > 0 {
+		// REQUIREMENTS
+		resultImage.DrawImage(requirements.Image(), 0, y)
+		y += requirements.Height()
+	}
+
+	// LINE
+	resultImage.DrawImage(sepLine.Image(), 0, y)
+	y += sepLine.Height()
+
+	// ENCHANTS
+	if len(item.Enchants) > 0 {
+		resultImage.DrawImage(enchants.Image(), 0, y)
+		y += enchants.Height()
+		// LINE
+		resultImage.DrawImage(sepLine.Image(), 0, y)
+		y += sepLine.Height()
+	}
+
+	// IMPLICITS
+	if len(item.Implicits) > 0 {
+		resultImage.DrawImage(implicits.Image(), 0, y)
+		y += implicits.Height()
+		// LINE
+		resultImage.DrawImage(sepLine.Image(), 0, y)
+		y += sepLine.Height()
+	}
+
+	// MODS
+	if len(item.Mods) > 0 {
+		resultImage.DrawImage(mods.Image(), 0, y)
+	}
+
+	resultImage.SavePNG("last.png")
+	return resultImage.Image()
+}
+
+func createHeader(name, base string, width int, rarityConfig RarityConfig) *gg.Context {
+	height := 54
+	if base == "" {
+		height = 27
+	}
+
+	header := gg.NewContext(width, height)
+	if err := header.LoadFontFace(fontPath, headerFontSize); err != nil {
+		log.Fatal(err)
+	}
+
+	left, err := gg.LoadImage(rarityConfig.path + "left.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	center, err := gg.LoadImage(rarityConfig.path + "center.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	right, err := gg.LoadImage(rarityConfig.path + "right.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	scale := float64(height) / float64(left.Bounds().Max.Y)
+	s := float64(width) / float64(left.Bounds().Max.X)
+
+	header.Push()
+	header.Scale(s, scale)
+	header.DrawImage(center, 0, 0)
+	header.Pop()
+
+	header.Push()
+	header.Scale(scale, scale)
+	header.DrawImage(left, 0, 0)
+	header.Pop()
+
+	header.Push()
+	header.Scale(scale, scale)
+	header.DrawImage(right, int(float64(width)/scale)-left.Bounds().Max.X, 0)
+	header.Pop()
+
+	header.SetColor(rarityConfig.color)
+
+	if base == "" {
+		header.DrawStringAnchored(name, float64(width)/2, float64(height)/2, 0.5, 0.5)
+
+		return header
+	}
+
+	header.DrawStringAnchored(name, float64(width)/2, float64(height)*0.25, 0.5, 0.5)
+	header.DrawStringAnchored(base, float64(width)/2, float64(height)*0.7, 0.5, 0.5)
+
+	return header
+}
+
+func createProperties(width int, properties []string) *gg.Context {
+	height := (len(properties))*(fontSize+miniPadding) + padding
+	propertiesContext := createBaseContext(width, height, fontSize)
+
+	for i, property := range properties {
+		augmented := false
+		if strings.Contains(property, " (augmented)") {
+			property = strings.ReplaceAll(property, " (augmented)", "")
+			augmented = true
+		}
+		if augmented && !strings.Contains(property, "Consumes") {
+			w, _ := getStringSize(property, fontSize)
+			p := strings.Split(property, ": ")
+			w1, _ := getStringSize(p[0]+": ", fontSize)
+			propertiesContext.SetColor(propertyColor)
+			propertiesContext.DrawStringAnchored(p[0]+": ", float64(width)/2-float64(w)/2+float64(w1)/2, float64((miniPadding+fontSize)*(i+1)), 0.5, 0)
+			propertiesContext.SetColor(augmentedPropertyColor)
+			propertiesContext.DrawStringAnchored(p[1], float64(width)/2+float64(w)/2-float64(w-w1)/2, float64((miniPadding+fontSize)*(i+1)), 0.5, 0)
+			continue
+		}
+		propertiesContext.SetColor(propertyColor)
+		propertiesContext.DrawStringAnchored(property, float64(width)/2, float64((miniPadding+fontSize)*(i+1)), 0.5, 0)
+	}
+
+	return propertiesContext
+}
+
+func createBaseContext(width, height int, fontSize float64) *gg.Context {
+	context := gg.NewContext(width, height)
+	if err := context.LoadFontFace(fontPath, fontSize); err != nil {
+		log.Fatal(err)
+	}
+	context.SetRGB(0, 0, 0)
+	context.Clear()
+
+	return context
+}
+
+func getStringSize(text string, fontSize float64) (int, int) {
+	tempDC := createBaseContext(1, 1, fontSize)
+	textWidth, textHeight := tempDC.MeasureString(text)
+	return int(textWidth), int(textHeight)
+}
+
+func createSeparationLine(width int, rarityConfig RarityConfig) *gg.Context {
+	height := 1 + padding*2
+	separationLine := createBaseContext(width, height, fontSize)
+
+	sepImage, err := gg.LoadImage(rarityConfig.path + "sep.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	separationLine.DrawImage(sepImage, width/2-sepImage.Bounds().Max.X/2, padding)
+
+	return separationLine
+}
+
+func createRequires(width int, requirements []string) *gg.Context {
+	height := fontSize + padding
+	requirementsContext := createBaseContext(width, height, fontSize)
+
+	var lvl, str, dex, int string
+	for _, req := range requirements {
+		s := strings.Split(req, ": ")
+		if len(s) < 2 {
+			continue
+		}
+		switch s[0] {
+		case "Level":
+			lvl = s[1]
+		case "Str":
+			str = s[1]
+		case "Dex":
+			dex = s[1]
+		case "Int":
+			int = s[1]
+		}
+	}
+	x := float64(width) / 2
+	y := float64(fontSize)
+
+	parts := []struct {
+		text  string
+		color color.Color
+	}{
+		{"Requires Level ", propertyColor},
+		{lvl, levelColor},
+	}
+
+	if str != "" {
+		parts = append(parts,
+			struct {
+				text  string
+				color color.Color
+			}{", ", propertyColor},
+			struct {
+				text  string
+				color color.Color
+			}{str + " Str", strColor},
+		)
+	}
+	if dex != "" {
+		parts = append(parts,
+			struct {
+				text  string
+				color color.Color
+			}{", ", propertyColor},
+			struct {
+				text  string
+				color color.Color
+			}{dex + " Dex", dexColor},
+		)
+	}
+	if int != "" {
+		parts = append(parts,
+			struct {
+				text  string
+				color color.Color
+			}{", ", propertyColor},
+			struct {
+				text  string
+				color color.Color
+			}{int + " Int", intColor},
+		)
+	}
+
+	totalWidth := 0.0
+	for _, p := range parts {
+		w, _ := requirementsContext.MeasureString(p.text)
+		totalWidth += w
+	}
+
+	curX := x - totalWidth/2
+
+	for _, p := range parts {
+		requirementsContext.SetColor(p.color)
+		requirementsContext.DrawString(p.text, curX, y)
+		w, _ := requirementsContext.MeasureString(p.text)
+		curX += w
+	}
+
+	return requirementsContext
+}
+
+func createSockets(width int, sockets string) *gg.Context {
+	height := fontSize + padding
+	socketsContext := createBaseContext(width, height, fontSize)
+
+	x := float64(width) / 2
+	y := float64(fontSize)
+
+	parts := []struct {
+		text  string
+		color color.Color
+	}{{"Sockets: ", propertyColor}}
+
+	for _, symbol := range sockets {
+		var socketColor color.Color
+		switch symbol {
+		case 'R':
+			socketColor = strColor
+		case 'G':
+			socketColor = dexColor
+		case 'B':
+			socketColor = intColor
+		default:
+			socketColor = propertyColor
+		}
+		parts = append(parts,
+			struct {
+				text  string
+				color color.Color
+			}{string(symbol), socketColor},
+		)
+	}
+
+	totalWidth := 0.0
+	for _, p := range parts {
+		w, _ := socketsContext.MeasureString(p.text)
+		totalWidth += w
+	}
+
+	curX := x - totalWidth/2
+
+	for _, p := range parts {
+		socketsContext.SetColor(p.color)
+		socketsContext.DrawString(p.text, curX, y)
+		w, _ := socketsContext.MeasureString(p.text)
+		curX += w
+	}
+
+	return socketsContext
+}
+
+func createItemLevel(width int, itemLevel string) *gg.Context {
+	height := fontSize + padding
+	itemLevelContext := createBaseContext(width, height, fontSize)
+
+	parts := []struct {
+		text  string
+		color color.Color
+	}{{"Item Level: ", propertyColor}, {itemLevel, levelColor}}
+
+	x := float64(width) / 2
+	y := float64(fontSize)
+	totalWidth := 0.0
+	for _, p := range parts {
+		w, _ := itemLevelContext.MeasureString(p.text)
+		totalWidth += w
+	}
+
+	curX := x - totalWidth/2
+
+	for _, p := range parts {
+		itemLevelContext.SetColor(p.color)
+		itemLevelContext.DrawString(p.text, curX, y)
+		w, _ := itemLevelContext.MeasureString(p.text)
+		curX += w
+	}
+	return itemLevelContext
+}
+
+func createModLines(width int, mods []string) *gg.Context {
+	height := (len(mods))*(fontSize+miniPadding) + padding
+	modsContext := createBaseContext(width, height, fontSize)
+
+	for i, mod := range mods {
+		flag := false
+		mod = strings.TrimSuffix(mod, " (implicit)")
+
+		if strings.Contains(mod, "(fractured)") {
+			mod = strings.TrimSuffix(mod, " (fractured)")
+			flag = true
+			modsContext.SetColor(fractureColor)
+		}
+
+		if strings.Contains(mod, "(enchant)") || strings.Contains(mod, "(crafted)") {
+			mod = strings.TrimSuffix(mod, " (enchant)")
+			mod = strings.TrimSuffix(mod, " (crafted)")
+			flag = true
+			modsContext.SetColor(levelColor)
+		}
+
+		if !flag {
+			modsContext.SetColor(augmentedPropertyColor)
+		}
+
+		modsContext.DrawStringAnchored(mod, float64(width)/2, float64((miniPadding+fontSize)*(i+1)), 0.5, 0)
+	}
+
+	return modsContext
 }
